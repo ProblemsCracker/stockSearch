@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="UTF-8">
+<head>
+    
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.13.0/build/cssbutton/cssbutton.css">
+    <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/3.14.1/build/tabview/assets/skins/night/tabview.css">
+    <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="yui-min.js"></script>
+
+    <style>
+        #show_search_span_id{
+            position: absolute;
+            left: 140px;
+            top: 40px;
+            width: 800px
+        }
+        #show_error_id{
+            position: absolute;
+            left: 140px;
+            top: 100px;
+        }
+        #initial_company_text_id{
+            color: white;
+        }
+        #show_company_name_id{
+            position:absolute;
+            left:140px;
+            top:100px;
+            font-size: 40px;
+            font-weight:900;
+            color: white;
+            width: 500px;
+        }
+        #show_price_and_change_id
+        {
+            position:absolute;
+            left:140px;
+            top:180px;
+            width: 500px;
+        }
+        #show_LastPrice_id{
+            font-size: 50px;
+            color: white;
+        }
+        #show_up_down_array{
+            height: 30px;
+        }
+        #show_upChangeInPercent_id
+        {
+            font-size: 30px;
+            color: green;
+        }
+        #show_downChangeInPercent_id
+        {
+            font-size: 30px;
+            color: red;
+        }
+        #show_StockChart_id{
+            position:absolute;
+            left:870px;
+            top:130px;
+            height: 180px;
+            width: 300px;
+        }
+        #show_FBLogo_id{
+            cursor: pointer; 
+            padding-top:10px; 
+            height: 60px; 
+            width: 80px;
+            position:absolute;
+            left:140px;
+            top:240px;
+        }
+        hr.under_words_class
+	{
+            position:absolute;
+            left: 140px;
+            top: 380px;
+            width: 1030px;
+            color: white
+	}
+        #lowerHalf{
+            position:absolute;
+            left: 140px;
+            top: 430px;
+            width: 1030px;
+        }
+        #lowerHalf .tab1 {
+            background-color: blue;
+        }
+        #lowerHalf .tab2 {
+            background-color: blue;
+        }
+        #show_stock_table_left_half_number_id{
+            width: 100px;
+            text-align: right;
+        }
+        #separation_in_table_id{
+            width: 5px;
+        }
+        #show_stock_table_right_half_title_id{
+            width: 100px;
+            text-align: left;
+        }
+        #show_news_titles_id {
+            color: black;
+        }
+    </style>
+    
+    <script type="text/javascript">  
+        
+    function callServlet(symbol)
+    {
+        //var symbol = document.forms[0].companyName.value;
+        
+        //alert("companyName: " + symbol);
+        if(symbol == ""){
+            alert("please enter a company name.");
+        }
+        else{
+            var url = "http://cs-server.usc.edu:11673/examples/servlet/MyServlet?symbol=" + escape(symbol);
+            //alert(url);
+
+            req = false;
+            // branch for native XMLHttpRequest object
+            if(window.XMLHttpRequest) {
+                  try {   
+                      req = new XMLHttpRequest();
+                    } catch(e) {  
+                      req = false;
+                    }
+            // branch for IE/Windows ActiveX version
+            } else if(window.ActiveXObject) {
+                  try {
+                    req = new ActiveXObject("Msxml2.XMLHTTP");
+                  } catch(e) {
+                    try {  
+                        req = new ActiveXObject("Microsoft.XMLHTTP");
+                    } catch(e) {   req = false;
+                    }
+                  }
+            } if(req) {
+                req.open("GET", url, true);
+                req.setRequestHeader("Content-Type", "text/html");
+                req.setRequestHeader("Method", "GET" + url + "HTTP/1.1");
+                req.onreadystatechange = myCallback;
+                req.send("");
+            }
+        }
+    }
+
+    function myCallback(){
+        // only if req shows "loaded"
+        //alert("in myCallback()");
+        if (req.readyState == 4) {
+                // only if "OK"
+                //alert("status: " + req.status);
+                if (req.status == 200) {
+                                //document.getElementById("result").innerHTML = req.responseText;
+                                //x.innerHTML = result;
+                                resultCheck = JSON.parse(unescape(req.responseText));
+                                if(resultCheck.error){
+                                    document.getElementById("upperHalf").innerHTML = "<h1 align='center' id='show_error_id'><b>Stock Information Not Available</b></h1>";
+                                    document.getElementById("lowerHalf").innerHTML = "";
+                                }
+                                else{
+                                    showResult(req.responseText);
+                                }
+                } else {
+                                alert("There was a problem retrieving the XML data:\n"
+                                +   req.statusText);
+                } 
+        }	
+    }
+
+    
+    function showResult(result){
+        result = JSON.parse(unescape(result));
+        
+        //separate into two tables: up and down
+        
+        //upper table
+        resultPage = "";
+        resultPage += "<p id='show_company_name_id'>" + result.result.Name+"("+result.result.Symbol+")"+"</p>";
+        resultPage += "<img id='show_StockChart_id' src='"+result.result.StockChartImageURL+"'/>";
+        
+        var LastTradePriceOnly_checked = result.result.Quote.LastTradePriceOnly ? result.result.Quote.LastTradePriceOnly : "NA";
+        
+        resultPage += "<div id='show_price_and_change_id'>\n\
+                    <span id='show_LastPrice_id'>" 
+                + LastTradePriceOnly_checked
+                + "  </span>";
+        
+        var CIPString = result.result.Quote.ChangeInPercent.toString();
+        CIPString = CIPString.substring(0, CIPString.length - 1);
+        
+        if(result.result.Quote.ChangeType == "-"){
+            resultPage += "<span id='show_downChangeInPercent_id'><img id='show_up_down_array' src='http://www-scf.usc.edu/~csci571/2014Spring/hw6/down_r.gif'/>" + result.result.Quote.Change
+            resultPage += "(" + (-Number(CIPString)).toString() + "%)";
+        }
+        else if(result.result.Quote.ChangeType == "+"){
+            resultPage += "<span id='show_upChangeInPercent_id'><img id='show_up_down_array' src='http://www-scf.usc.edu/~csci571/2014Spring/hw6/up_g.gif'/>" + result.result.Quote.Change;
+            resultPage += "(" + result.result.Quote.ChangeInPercent + ")";
+        }
+        else{
+            resultPage += "<span id='show_upChangeInPercent_id'>" + Number(result.result.Quote.Change).toString();
+            resultPage += "(" + result.result.Quote.ChangeInPercent + ")";
+        }
+        
+        resultPage += "</span></div>";
+        
+        //facebook symbol
+        resultPage += "<img id='show_FBLogo_id' src='facebook_logo.jpg' \n\
+                    onclick='postToFeed()'/>";
+        
+        resultPage += "<hr class='under_words_class'/>";
+        //downside table
+        /*
+         * generate stockTable
+         */
+        var stockTable = "";
+        stockTable += '<div id="stockTable"><table border="0" style="width:1010px;">';
+        stockTable += "<tr>";
+        stockTable += "<td style='"+"width:400px"+"'>Prev. Close: </td><td id='show_stock_table_left_half_number_id'>" + result.result.Quote.PreviousClose + "</td>";
+        stockTable += "<td id='separation_in_table_id'></td>";
+        stockTable += "<td id='show_stock_table_right_half_title_id'>Day's Range: </td><td style='"+"width: 400px; text-align:right"+"'>" + result.result.Quote.DaysLow +
+                        " - " + result.result.Quote.DaysHigh + "</td>";
+        stockTable += "</tr><tr>";
+        
+        stockTable += "<td>Open: </td><td id='show_stock_table_left_half_number_id'>" + result.result.Quote.Open + "</td>";
+        stockTable += "<td id='separation_in_table_id'></td>";
+        stockTable += "<td id='show_stock_table_right_half_title_id'>52wk Range: </td><td style='"+"text-align:right"+"'>"+result.result.Quote.YearLow + " - " +
+                        result.result.Quote.YearHigh + "</td>";                
+        stockTable += "</tr><tr>";
+        
+        stockTable += "<td>Bid: </td><td id='show_stock_table_left_half_number_id'>" + result.result.Quote.Bid + "</td>";
+        stockTable += "<td id='separation_in_table_id'></td>";
+        stockTable += "<td id='show_stock_table_right_half_title_id'>Volume: </td><td style='" + "text-align:right" + "'>" + result.result.Quote.Volume + "</td>";
+        stockTable += "</tr><tr>";
+        
+        stockTable += "<td>Ask: </td><td id='show_stock_table_left_half_number_id'>" + result.result.Quote.Ask + "</td>";
+        stockTable += "<td id='separation_in_table_id'></td>";
+        stockTable += "<td id='show_stock_table_right_half_title_id'>Avg Vol(3m): </td><td style='" + "text-align:right" + "'>" + result.result.Quote.AverageDailyVolume + "</td>";
+        stockTable += "</tr><tr>";    
+
+        stockTable += "<td>1y Target Est: </td><td id='show_stock_table_left_half_number_id'>" + result.result.Quote.OneYearTargetPrice + "</td>";
+        stockTable += "<td id='separation_in_table_id'></td>";
+        stockTable += "<td id='show_stock_table_right_half_title_id'>Market Cap: </td><td style='" + "text-align:right" + "'>" + result.result.Quote.MarketCapitalization + "</td>";
+        stockTable += "</tr>";
+
+        stockTable += "</table></div>";
+        
+        /*
+         * generate newsTable
+         */
+        var newsTable = "";
+        
+        //newsTable += "<div align = 'left'><b style='font-size: 20px'>News Headlines</b></div>";
+
+        //newsTable += "<div align='center'><hr></div>";
+
+        newsTable += "<div align='left' id='newsTable'>" + '<ul style="width:1000px;">';
+
+        for(var i = 0; i < result.result.News.Item.length; i++)
+        {
+            newsTable += "<li><a id='show_news_titles_id' href='" 
+                    + result.result.News.Item[i].Link + "'>" 
+                    + result.result.News.Item[i].Title 
+                    + "</a></li>";
+        }
+
+        newsTable += "</ul></div>";
+        
+        document.getElementById("lowerHalf").innerHTML = "";
+        
+        YUI().use('tabview', function(Y) {
+            var tabview = new Y.TabView({
+            children: [{
+                label: 'Quote Information',
+                content: stockTable
+            }, {
+                label: 'News Headlines',
+                content: newsTable
+            }]
+        });
+
+        tabview.render('#lowerHalf');
+        });
+        
+        document.getElementById("upperHalf").innerHTML = resultPage;
+        
+    }
+    
+    </script>
+</head>
+    
+<body class="yui3-skin-sam" style="background-image:url('stockBG.jpg');background-repeat:no-repeat;background-size: 1600px, 900px;">
+    
+<div id="fb-root"></div>
+<script>
+function postToFeed() {
+	result = JSON.parse(unescape(req.responseText));
+        //alert("in post to feed");
+        
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId      : '613356685414791',
+                //channelUrl : 'http://cs-server.usc.edu:11673/examples/servlets/producer/channel.html',
+                status     : true,
+                cookie     : true, 
+                xfbml      : true
+            });
+            FB.ui(      
+                  {
+                  method: 'feed',
+                  name: (result.result.Name ? result.result.Name : "NA") ,
+                  caption: "Stock Information of "+(result.result.Name ? result.result.Name : "NA")
+                                   + " "+(result.result.Symbol ? "("+result.result.Symbol+")" : "") ,
+                  description: "Last Trade Price: "+ (result.result.Quote.LastTradePriceOnly ? result.result.Quote.LastTradePriceOnly : "NA") 
+                                  +", Change: "+ (result.result.Quote.ChangeType ? result.result.Quote.ChangeType : "")
+                                  + (result.result.Quote.Change ? result.result.Quote.Change : "NA")
+                                  +"("+ (result.result.Quote.ChangeInPercent ? result.result.Quote.ChangeInPercent : "NA") +")",
+                                  link: (result.result.Symbol ? "http://finance.yahoo.com/q?s="+result.result.Symbol : "http://finance.yahoo.com"),
+                                  picture: (result.result.StockChartImageURL ? result.result.StockChartImageURL : "")   },
+
+                  function(response) {
+                      if (response && response.post_id) {   
+                          alert('Post was published.');
+                      } 
+                      else {  
+                          alert('Post was not published.');   
+                      }  
+                  }   
+             ); 
+            };
+        (function(d, s, id){
+           var js, fjs = d.getElementsByTagName(s)[0];
+           if (d.getElementById(id)) {return;}
+           js = d.createElement(s); js.id = id;
+           js.src = "//connect.facebook.net/en_US/all.js";
+           fjs.parentNode.insertBefore(js, fjs);
+         }(document, 'script', 'facebook-jssdk'));
+    }    
+</script>
+    
+<script type="text/javascript">
+var YAHOO = {};
+YAHOO.util = {};
+YAHOO.util.ScriptNodeDataSource = {};
+
+YUI({
+    filter: "raw"
+}).use("datasource", "autocomplete", "highlight", function (Y) {
+    var oDS, acNode = Y.one("#company");
+
+    oDS = new Y.DataSource.Get({
+        source: "http://d.yimg.com/aq/autoc?query=",
+        generateRequestCallback: function (id) {
+            YAHOO.util.ScriptNodeDataSource.callbacks =
+                YUI.Env.DataSource.callbacks[id];
+            return "&callback=YAHOO.util.ScriptNodeDataSource.callbacks";
+        }
+    });
+    oDS.plug(Y.Plugin.DataSourceJSONSchema, {
+        schema: {
+            resultListLocator: "ResultSet.Result",
+            resultFields: ["symbol", "name", "exch", "type", "exchDisp"]
+        }
+    });
+
+    acNode.plug(Y.Plugin.AutoComplete, {
+        maxResults: 10,
+        resultTextLocator: "symbol",
+        resultFormatter: function (query, results) {
+            return Y.Array.map(results, function (result) {
+                var asset = result.raw,
+                    text =  asset.symbol +
+                        " " + asset.name +
+                        " (" + asset.type +
+                        " - " + asset.exchDisp + ")";
+
+                return Y.Highlight.all(text, query);
+            });
+        },
+        requestTemplate:  "{query}&region=US&lang=en-US",
+        source: oDS,
+        activateFirstItem: true
+    });
+
+    acNode.ac.on("select", function (e) {
+        //alert(e.result.raw.name);
+        
+        //latest change***********************************************************
+        return callServlet(e.result.raw.symbol);
+        //latest change***********************************************************
+        
+    });
+});
+</script>
+
+<form class="yui3-form" onsubmit="return false;">
+    <!--Company Symbol: -->
+    <span id="show_search_span_id">
+    <span id="initial_company_text_id">Company: </span><input type="text" id="company" name="symbol" placeholder="Enter company symbol" size="90px" />
+    <!--<input style="width: 200px" name="companyName" type="text">--> 
+    <!--<input type="submit" name="submit" value="search" onclick="callServlet()">-->
+    <button class="yui3-button" onClick="return callServlet(this.form.symbol.value);">Search</button>
+    </span>
+    <br>
+    <br>
+    <!--<div id="result title">The result from servlet and PHP is</div>-->
+    <br>
+</form>
+    
+<div id="result">
+    <div id="upperHalf"></div>
+    <div id="lowerHalf"></div>
+</div>
+    
+</body>
+</html>
